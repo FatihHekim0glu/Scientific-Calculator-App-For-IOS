@@ -1,5 +1,49 @@
 import Foundation
 
+// MARK: - AngleMode
+
+/// Angle measurement modes for the calculator
+enum AngleMode: String, CaseIterable, Identifiable {
+    case degrees = "DEG"
+    case radians = "RAD"
+    case gradians = "GRAD"
+    
+    var id: String { rawValue }
+    
+    /// Display name for UI
+    var displayName: String {
+        switch self {
+        case .degrees: return "Degrees"
+        case .radians: return "Radians"
+        case .gradians: return "Gradians"
+        }
+    }
+    
+    /// Converts radians to the current angle mode
+    func fromRadians(_ radians: Double) -> Double {
+        switch self {
+        case .degrees:
+            return radians * 180.0 / .pi
+        case .radians:
+            return radians
+        case .gradians:
+            return radians * 200.0 / .pi
+        }
+    }
+    
+    /// Converts from current angle mode to radians
+    func toRadians(_ value: Double) -> Double {
+        switch self {
+        case .degrees:
+            return value * .pi / 180.0
+        case .radians:
+            return value
+        case .gradians:
+            return value * .pi / 200.0
+        }
+    }
+}
+
 // MARK: - DMS (Degrees, Minutes, Seconds)
 
 /// Represents an angle in degrees, minutes, seconds format
