@@ -225,10 +225,91 @@ enum MathFunction: String, CaseIterable {
     // Phase 3: Base-N functions
     case baseConvert
     
+    // MARK: - Phase 4: Statistics Functions
+    
+    /// Mean/average of values
+    case mean
+    /// Sum of values
+    case sum
+    /// Sum of squares
+    case sumSquares
+    /// Population standard deviation
+    case popStdDev
+    /// Sample standard deviation
+    case sampleStdDev
+    /// Variance
+    case variance
+    /// Minimum value
+    case minimum
+    /// Maximum value
+    case maximum
+    /// Median
+    case median
+    /// First quartile (Q1)
+    case quartile1
+    /// Third quartile (Q3)
+    case quartile3
+    /// Count of values
+    case count
+    /// Covariance
+    case covariance
+    /// Pearson correlation coefficient
+    case correlation
+    
+    // MARK: - Phase 4: Distribution Functions
+    
+    /// Normal probability density function
+    case normalPdf
+    /// Normal cumulative distribution function
+    case normalCdf
+    /// Inverse normal CDF (quantile function)
+    case invNorm
+    /// Binomial probability mass function
+    case binomialPdf
+    /// Binomial cumulative distribution function
+    case binomialCdf
+    /// Poisson probability mass function
+    case poissonPdf
+    /// Poisson cumulative distribution function
+    case poissonCdf
+    
+    // MARK: - Phase 4: Regression Functions
+    
+    /// Linear regression intercept (a)
+    case linRegA
+    /// Linear regression slope (b)
+    case linRegB
+    /// Estimated y value (ŷ)
+    case estimateY
+    /// Estimated x value (x̂)
+    case estimateX
+    
     /// Returns true if this function takes two arguments
     var isTwoArgument: Bool {
         switch self {
-        case .randomInt, .pol, .rec, .gcd, .lcm, .vectorAngle, .vectorProject, .baseConvert:
+        case .randomInt, .pol, .rec, .gcd, .lcm, .vectorAngle, .vectorProject, .baseConvert,
+             .covariance, .correlation, .poissonPdf, .poissonCdf:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this function takes three arguments
+    var isThreeArgument: Bool {
+        switch self {
+        case .normalPdf, .normalCdf, .invNorm, .binomialPdf, .binomialCdf:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a variadic function (takes multiple arguments)
+    var isVariadic: Bool {
+        switch self {
+        case .mean, .sum, .sumSquares, .popStdDev, .sampleStdDev, .variance,
+             .minimum, .maximum, .median, .quartile1, .quartile3, .count:
             return true
         default:
             return false
@@ -267,6 +348,85 @@ enum MathFunction: String, CaseIterable {
             return true
         default:
             return false
+        }
+    }
+    
+    // MARK: - Phase 4 Function Properties
+    
+    /// Returns true if this is a statistics function
+    var isStatisticsFunction: Bool {
+        switch self {
+        case .mean, .sum, .sumSquares, .popStdDev, .sampleStdDev, .variance,
+             .minimum, .maximum, .median, .quartile1, .quartile3, .count,
+             .covariance, .correlation:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a distribution function
+    var isDistributionFunction: Bool {
+        switch self {
+        case .normalPdf, .normalCdf, .invNorm,
+             .binomialPdf, .binomialCdf,
+             .poissonPdf, .poissonCdf:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a regression function
+    var isRegressionFunction: Bool {
+        switch self {
+        case .linRegA, .linRegB, .estimateY, .estimateX:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a Phase 4 function
+    var isPhase4Function: Bool {
+        isStatisticsFunction || isDistributionFunction || isRegressionFunction
+    }
+    
+    /// Number of arguments for distribution functions
+    var distributionArgumentCount: Int {
+        switch self {
+        case .normalPdf, .normalCdf: return 3  // x, μ, σ
+        case .invNorm: return 3                 // p, μ, σ
+        case .binomialPdf, .binomialCdf: return 3  // k, n, p
+        case .poissonPdf, .poissonCdf: return 2     // k, λ
+        default: return 1
+        }
+    }
+}
+
+// MARK: - Phase 4: Statistical Functions Enum
+
+/// Statistical functions that operate on lists of values
+enum StatFunction: String, CaseIterable {
+    case mean = "mean"
+    case sum = "sum"
+    case stdDev = "stdDev"
+    case variance = "var"
+    case min = "min"
+    case max = "max"
+    case median = "median"
+    case count = "count"
+    case range = "range"
+    
+    /// Whether this function accepts variable number of arguments
+    var isVariadic: Bool { true }
+    
+    /// Minimum number of arguments required
+    var minArguments: Int {
+        switch self {
+        case .count, .sum: return 1
+        case .mean, .min, .max, .median, .range: return 1
+        case .stdDev, .variance: return 2
         }
     }
 }
@@ -310,6 +470,14 @@ enum TokenType: Equatable {
     
     /// Semicolon for matrix row separator
     case semicolon
+    
+    // Phase 4 additions
+    
+    /// Statistical variable (Σx, x̄, σx, etc.)
+    case statVariable(StatVariableType)
+    
+    /// Statistical function (variadic, takes list of values)
+    case statFunction(StatFunction)
 }
 
 // MARK: - Token
@@ -339,11 +507,46 @@ extension TokenType {
         }
     }
     
+    /// Returns true if this token type is a Phase 4 type
+    var isPhase4Type: Bool {
+        switch self {
+        case .statVariable, .statFunction:
+            return true
+        case .function(let fn):
+            return fn.isPhase4Function
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a statistics-related token
+    var isStatisticsToken: Bool {
+        switch self {
+        case .statVariable, .statFunction:
+            return true
+        case .function(let fn):
+            return fn.isStatisticsFunction
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a distribution-related token
+    var isDistributionToken: Bool {
+        switch self {
+        case .function(let fn):
+            return fn.isDistributionFunction
+        default:
+            return false
+        }
+    }
+    
     /// Returns true if this token starts an expression
     var canStartExpression: Bool {
         switch self {
         case .number, .constant, .scientificConstant, .variable, .leftParen, .function,
-             .imaginaryUnit, .matrixRef, .vectorRef, .leftBracket:
+             .imaginaryUnit, .matrixRef, .vectorRef, .leftBracket,
+             .statVariable, .statFunction:
             return true
         case .unaryOperator(let op):
             return op == .negate
@@ -391,6 +594,10 @@ extension TokenType {
             return "]"
         case .semicolon:
             return ";"
+        case .statVariable(let sv):
+            return sv.rawValue
+        case .statFunction(let sf):
+            return sf.rawValue
         }
     }
 }

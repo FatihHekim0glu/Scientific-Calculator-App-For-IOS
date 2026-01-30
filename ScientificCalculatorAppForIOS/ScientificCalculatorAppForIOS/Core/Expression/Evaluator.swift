@@ -130,6 +130,23 @@ struct EvaluationContext {
     /// Current number base for Base-N mode
     var currentBase: NumberBase = .decimal
     
+    // MARK: - Phase 4 Additions
+    
+    /// Statistical data for statistics mode calculations
+    var statisticalData: StatisticalData?
+    
+    /// Cached one-variable statistics result
+    var cachedOneVarStats: OneVariableStatistics?
+    
+    /// Cached two-variable statistics result  
+    var cachedTwoVarStats: TwoVariableStatistics?
+    
+    /// Selected regression type for statistics mode
+    var selectedRegressionType: RegressionType = .linear
+    
+    /// Cached regression result
+    var cachedRegressionResult: RegressionResult?
+    
     // MARK: - Variable Access
     
     /// Sets a variable value
@@ -193,6 +210,143 @@ struct EvaluationContext {
     /// Sets a vector by reference
     mutating func setVector(_ ref: VectorRef, _ vector: Vector) {
         vectors[ref] = vector
+    }
+    
+    // MARK: - Phase 4: Statistics Access
+    
+    /// Gets a statistical variable by name (Σx, x̄, σx, etc.)
+    mutating func getStatVariable(_ name: String) throws -> Double {
+        guard let data = statisticalData else {
+            throw CalculatorError.invalidInput("No statistical data available")
+        }
+        
+        // Ensure stats are calculated
+        if cachedOneVarStats == nil {
+            cachedOneVarStats = try Statistics.oneVariable(data: data)
+        }
+        
+        guard let stats = cachedOneVarStats else {
+            throw CalculatorError.invalidInput("Cannot calculate statistics")
+        }
+        
+        switch name {
+        case "n":
+            return Double(stats.n)
+        case "Σx", "sumX":
+            return stats.sum
+        case "Σx²", "sumX2":
+            return stats.sumOfSquares
+        case "x̄", "meanX":
+            return stats.mean
+        case "σx", "popStdDevX":
+            return stats.populationStdDev
+        case "sx", "sampleStdDevX":
+            return stats.sampleStdDev
+        case "minX":
+            return stats.min
+        case "maxX":
+            return stats.max
+        case "Med", "median":
+            return stats.median
+        case "Q₁", "Q1":
+            return stats.q1
+        case "Q₃", "Q3":
+            return stats.q3
+        default:
+            return try getTwoVarStatVariable(name)
+        }
+    }
+    
+    /// Gets a 2-variable statistical variable
+    private mutating func getTwoVarStatVariable(_ name: String) throws -> Double {
+        guard let data = statisticalData, data.isTwoVariable else {
+            throw CalculatorError.invalidInput("2-variable statistics requires Y data")
+        }
+        
+        // Ensure 2-var stats are calculated
+        if cachedTwoVarStats == nil {
+            cachedTwoVarStats = try Statistics.twoVariable(data: data)
+        }
+        
+        guard let twoVarStats = cachedTwoVarStats else {
+            throw CalculatorError.invalidInput("Cannot calculate 2-variable statistics")
+        }
+        
+        switch name {
+        case "Σy", "sumY":
+            return twoVarStats.yStats.sum
+        case "Σy²", "sumY2":
+            return twoVarStats.yStats.sumOfSquares
+        case "ȳ", "meanY":
+            return twoVarStats.yStats.mean
+        case "σy", "popStdDevY":
+            return twoVarStats.yStats.populationStdDev
+        case "sy", "sampleStdDevY":
+            return twoVarStats.yStats.sampleStdDev
+        case "minY":
+            return twoVarStats.yStats.min
+        case "maxY":
+            return twoVarStats.yStats.max
+        case "Σxy", "sumXY":
+            return twoVarStats.sumOfProducts
+        case "r", "correlation":
+            return twoVarStats.correlation
+        case "r²", "rSquared":
+            return twoVarStats.rSquared
+        case "a", "regA":
+            return try getRegressionCoefficient("a")
+        case "b", "regB":
+            return try getRegressionCoefficient("b")
+        case "c", "regC":
+            return try getRegressionCoefficient("c")
+        default:
+            throw CalculatorError.undefinedVariable(name)
+        }
+    }
+    
+    /// Gets a regression coefficient
+    private mutating func getRegressionCoefficient(_ name: String) throws -> Double {
+        guard let data = statisticalData, data.isTwoVariable,
+              let xValues = Optional(data.xValues),
+              let yValues = data.yValues else {
+            throw CalculatorError.invalidInput("Regression requires 2-variable data")
+        }
+        
+        // Ensure regression is calculated
+        if cachedRegressionResult == nil {
+            cachedRegressionResult = try Regression.regression(selectedRegressionType, xValues: xValues, yValues: yValues)
+        }
+        
+        guard let regression = cachedRegressionResult else {
+            throw CalculatorError.invalidInput("Cannot calculate regression")
+        }
+        
+        switch name {
+        case "a":
+            return regression.a
+        case "b":
+            return regression.b
+        case "c":
+            guard let c = regression.c else {
+                throw CalculatorError.invalidInput("Coefficient c only available for quadratic regression")
+            }
+            return c
+        default:
+            throw CalculatorError.undefinedVariable(name)
+        }
+    }
+    
+    /// Invalidates cached statistics when data changes
+    mutating func invalidateStatisticsCache() {
+        cachedOneVarStats = nil
+        cachedTwoVarStats = nil
+        cachedRegressionResult = nil
+    }
+    
+    /// Sets statistical data and invalidates cache
+    mutating func setStatisticalData(_ data: StatisticalData?) {
+        statisticalData = data
+        invalidateStatisticsCache()
     }
 }
 
@@ -289,6 +443,18 @@ struct Evaluator {
             
         case .baseNNumber(let value, let base):
             return .baseN(BaseNNumber(value, base: base))
+            
+        // MARK: Phase 4 Cases
+            
+        case .functionN(let function, let arguments):
+            return try evaluateFunctionN(function, arguments: arguments)
+            
+        case .listLiteral(let elements):
+            // Lists are handled by functions that accept them
+            throw CalculatorError.syntaxError("List literals must be used as function arguments")
+            
+        case .statVariable(let statVar):
+            return .real(try context.getStatVariable(statVar.rawValue))
         }
     }
     
@@ -738,6 +904,24 @@ struct Evaluator {
     // MARK: - Single-Argument Function Evaluation
     
     private mutating func evaluateFunction(_ function: MathFunction, argument: ASTNode) throws -> CalculatorResult {
+        // Handle Phase 4 statistics functions with single argument
+        if function.isStatisticsFunction {
+            let argResult = try evaluate(argument)
+            guard let value = argResult.doubleValue else {
+                throw CalculatorError.mathError("Statistics functions require numeric arguments")
+            }
+            return try evaluateStatisticsFunction(function, values: [value])
+        }
+        
+        // Handle Phase 4 regression functions
+        if function.isRegressionFunction {
+            let argResult = try evaluate(argument)
+            guard let value = argResult.doubleValue else {
+                throw CalculatorError.mathError("Regression functions require numeric arguments")
+            }
+            return try evaluateRegressionFunction(function, argument: value)
+        }
+        
         let argResult = try evaluate(argument)
         
         // Handle complex-specific functions
@@ -1085,6 +1269,241 @@ struct Evaluator {
             throw CalculatorError.syntaxError("\(function.rawValue) is not a zero-argument function")
         }
     }
+    
+    // MARK: - Phase 4: Statistics Function Evaluation
+    
+    /// Evaluates statistical functions that operate on lists of values
+    private func evaluateStatisticsFunction(_ function: MathFunction, values: [Double]) throws -> CalculatorResult {
+        guard !values.isEmpty else {
+            throw CalculatorError.invalidInput("Statistics functions require at least one value")
+        }
+        
+        switch function {
+        case .mean:
+            return .real(Statistics.mean(values))
+            
+        case .sum:
+            return .real(Statistics.sum(values))
+            
+        case .sumSquares:
+            return .real(Statistics.sumOfSquares(values))
+            
+        case .popStdDev:
+            guard values.count >= 1 else {
+                throw CalculatorError.invalidInput("Standard deviation requires at least 1 value")
+            }
+            return .real(Statistics.populationStdDev(values))
+            
+        case .sampleStdDev:
+            guard values.count >= 2 else {
+                throw CalculatorError.invalidInput("Sample standard deviation requires at least 2 values")
+            }
+            return .real(Statistics.sampleStdDev(values))
+            
+        case .variance:
+            guard values.count >= 1 else {
+                throw CalculatorError.invalidInput("Variance requires at least 1 value")
+            }
+            let sd = Statistics.populationStdDev(values)
+            return .real(sd * sd)
+            
+        case .minimum:
+            guard let minVal = values.min() else {
+                throw CalculatorError.invalidInput("Min requires at least one value")
+            }
+            return .real(minVal)
+            
+        case .maximum:
+            guard let maxVal = values.max() else {
+                throw CalculatorError.invalidInput("Max requires at least one value")
+            }
+            return .real(maxVal)
+            
+        case .median:
+            return .real(Statistics.median(values))
+            
+        case .quartile1:
+            return .real(try Statistics.quartile(values, q: 1))
+            
+        case .quartile3:
+            return .real(try Statistics.quartile(values, q: 3))
+            
+        case .count:
+            return .real(Double(values.count))
+            
+        default:
+            throw CalculatorError.syntaxError("\(function.rawValue) is not a statistics function")
+        }
+    }
+    
+    /// Evaluates two-variable statistics functions (covariance, correlation)
+    private func evaluateTwoVarStatisticsFunction(_ function: MathFunction, xValues: [Double], yValues: [Double]) throws -> CalculatorResult {
+        guard xValues.count == yValues.count else {
+            throw CalculatorError.invalidInput("X and Y arrays must have the same length")
+        }
+        
+        guard xValues.count >= 2 else {
+            throw CalculatorError.invalidInput("\(function.rawValue) requires at least 2 data points")
+        }
+        
+        switch function {
+        case .covariance:
+            return .real(try Statistics.covariance(xValues, yValues, frequencies: nil, population: true))
+            
+        case .correlation:
+            return .real(try Statistics.correlation(xValues, yValues, frequencies: nil))
+            
+        default:
+            throw CalculatorError.syntaxError("\(function.rawValue) is not a two-variable statistics function")
+        }
+    }
+    
+    // MARK: - Phase 4: Distribution Function Evaluation
+    
+    /// Evaluates distribution functions with their specific argument counts
+    private func evaluateDistributionFunction(_ function: MathFunction, args: [Double]) throws -> CalculatorResult {
+        switch function {
+        // Normal distribution functions: (x, μ, σ)
+        case .normalPdf:
+            guard args.count == 3 else {
+                throw CalculatorError.invalidInput("normalPdf requires 3 arguments: x, μ, σ")
+            }
+            let dist = try NormalDistribution(mean: args[1], stdDev: args[2])
+            return .real(dist.pdf(args[0]))
+            
+        case .normalCdf:
+            guard args.count == 3 else {
+                throw CalculatorError.invalidInput("normalCdf requires 3 arguments: x, μ, σ")
+            }
+            let dist = try NormalDistribution(mean: args[1], stdDev: args[2])
+            return .real(dist.cdf(args[0]))
+            
+        case .invNorm:
+            guard args.count == 3 else {
+                throw CalculatorError.invalidInput("invNorm requires 3 arguments: p, μ, σ")
+            }
+            let dist = try NormalDistribution(mean: args[1], stdDev: args[2])
+            return .real(try dist.inverseCdf(args[0]))
+            
+        // Binomial distribution functions: (k, n, p)
+        case .binomialPdf:
+            guard args.count == 3 else {
+                throw CalculatorError.invalidInput("binomialPdf requires 3 arguments: k, n, p")
+            }
+            let k = Int(args[0])
+            let n = Int(args[1])
+            let p = args[2]
+            let dist = try BinomialDistribution(trials: n, probability: p)
+            return .real(try dist.pmf(k))
+            
+        case .binomialCdf:
+            guard args.count == 3 else {
+                throw CalculatorError.invalidInput("binomialCdf requires 3 arguments: k, n, p")
+            }
+            let k = Int(args[0])
+            let n = Int(args[1])
+            let p = args[2]
+            let dist = try BinomialDistribution(trials: n, probability: p)
+            return .real(try dist.cdf(k))
+            
+        // Poisson distribution functions: (k, λ)
+        case .poissonPdf:
+            guard args.count == 2 else {
+                throw CalculatorError.invalidInput("poissonPdf requires 2 arguments: k, λ")
+            }
+            let k = Int(args[0])
+            let lambda = args[1]
+            let dist = try PoissonDistribution(lambda: lambda)
+            return .real(try dist.pmf(k))
+            
+        case .poissonCdf:
+            guard args.count == 2 else {
+                throw CalculatorError.invalidInput("poissonCdf requires 2 arguments: k, λ")
+            }
+            let k = Int(args[0])
+            let lambda = args[1]
+            let dist = try PoissonDistribution(lambda: lambda)
+            return .real(try dist.cdf(k))
+            
+        default:
+            throw CalculatorError.syntaxError("\(function.rawValue) is not a distribution function")
+        }
+    }
+    
+    // MARK: - Phase 4: Regression Function Evaluation
+    
+    /// Evaluates regression estimation functions
+    private mutating func evaluateRegressionFunction(_ function: MathFunction, argument: Double) throws -> CalculatorResult {
+        guard let data = context.statisticalData,
+              data.isTwoVariable,
+              let yValues = data.yValues else {
+            throw CalculatorError.invalidInput("Regression functions require 2-variable statistical data")
+        }
+        
+        // Get or compute regression
+        if context.cachedRegressionResult == nil {
+            context.cachedRegressionResult = try Regression.regression(
+                context.selectedRegressionType,
+                xValues: data.xValues,
+                yValues: yValues
+            )
+        }
+        
+        guard let regression = context.cachedRegressionResult else {
+            throw CalculatorError.invalidInput("Cannot calculate regression")
+        }
+        
+        switch function {
+        case .estimateY:
+            return .real(regression.estimateY(from: argument))
+            
+        case .estimateX:
+            guard let x = regression.estimateX(from: argument) else {
+                throw CalculatorError.mathError("Cannot estimate X for this regression type")
+            }
+            return .real(x)
+            
+        case .linRegA:
+            return .real(regression.a)
+            
+        case .linRegB:
+            return .real(regression.b)
+            
+        default:
+            throw CalculatorError.syntaxError("\(function.rawValue) is not a regression function")
+        }
+    }
+    
+    // MARK: - Phase 4: N-Argument Function Evaluation
+    
+    /// Evaluates functions with variable number of arguments
+    private mutating func evaluateFunctionN(_ function: MathFunction, arguments: [ASTNode]) throws -> CalculatorResult {
+        // Check if it's a distribution function
+        if function.isDistributionFunction {
+            let args = try arguments.map { node -> Double in
+                let result = try evaluate(node)
+                guard let value = result.doubleValue else {
+                    throw CalculatorError.mathError("Distribution functions require numeric arguments")
+                }
+                return value
+            }
+            return try evaluateDistributionFunction(function, args: args)
+        }
+        
+        // Check if it's a statistics function
+        if function.isStatisticsFunction {
+            let values = try arguments.map { node -> Double in
+                let result = try evaluate(node)
+                guard let value = result.doubleValue else {
+                    throw CalculatorError.mathError("Statistics functions require numeric arguments")
+                }
+                return value
+            }
+            return try evaluateStatisticsFunction(function, values: values)
+        }
+        
+        throw CalculatorError.syntaxError("\(function.rawValue) is not supported as a multi-argument function")
+    }
 }
 
 // MARK: - Evaluator Extensions for Convenience
@@ -1113,5 +1532,33 @@ extension Evaluator {
     /// Checks if an AST would produce a vector result
     func wouldProduceVector(_ node: ASTNode) -> Bool {
         node.isVectorExpression
+    }
+    
+    // MARK: - Phase 4: Statistics Convenience Methods
+    
+    /// Sets statistical data for evaluation context
+    mutating func setStatisticalData(_ data: StatisticalData?) {
+        context.setStatisticalData(data)
+    }
+    
+    /// Sets the regression type for statistical calculations
+    mutating func setRegressionType(_ type: RegressionType) {
+        context.selectedRegressionType = type
+        context.cachedRegressionResult = nil
+    }
+    
+    /// Gets a statistical variable value by name
+    mutating func getStatVariable(_ name: String) throws -> Double {
+        return try context.getStatVariable(name)
+    }
+    
+    /// Evaluates a statistics function with provided values
+    mutating func evaluateStatistics(_ function: MathFunction, values: [Double]) throws -> CalculatorResult {
+        return try evaluateStatisticsFunction(function, values: values)
+    }
+    
+    /// Evaluates a distribution function with provided arguments
+    mutating func evaluateDistribution(_ function: MathFunction, args: [Double]) throws -> CalculatorResult {
+        return try evaluateDistributionFunction(function, args: args)
     }
 }

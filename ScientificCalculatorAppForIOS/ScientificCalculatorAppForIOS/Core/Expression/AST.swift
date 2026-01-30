@@ -59,6 +59,17 @@ indirect enum ASTNode: Equatable {
     
     /// Base-N number literal with explicit base
     case baseNNumber(value: Int32, base: NumberBase)
+    
+    // MARK: - Phase 4: Statistics & Distributions
+    
+    /// N-argument function call for variadic functions (statistics, distributions)
+    case functionN(MathFunction, [ASTNode])
+    
+    /// List literal for passing multiple values to functions
+    case listLiteral([ASTNode])
+    
+    /// Statistical variable reference (Σx, x̄, σx, etc.)
+    case statVariable(StatVariableType)
 }
 
 // MARK: - ASTNode Description
@@ -162,6 +173,19 @@ extension ASTNode: CustomStringConvertible {
             
         case .baseNNumber(let value, let base):
             return formatBaseNNumber(value, base: base)
+            
+        // MARK: Phase 4 Cases
+            
+        case .functionN(let function, let arguments):
+            let argsStr = arguments.map { $0.description }.joined(separator: ", ")
+            return "\(function.rawValue)(\(argsStr))"
+            
+        case .listLiteral(let elements):
+            let elemStr = elements.map { $0.description }.joined(separator: ", ")
+            return "{\(elemStr)}"
+            
+        case .statVariable(let statVar):
+            return statVar.rawValue
         }
     }
     
@@ -290,6 +314,36 @@ extension ASTNode {
             return false
         }
     }
+    
+    /// Returns true if this is a Phase 4 node type (statistics/distributions)
+    var isPhase4Node: Bool {
+        switch self {
+        case .functionN(let fn, _):
+            return fn.isPhase4Function
+        case .listLiteral:
+            return true
+        case .statVariable:
+            return true
+        case .function(let fn, _), .function2(let fn, _, _):
+            return fn.isPhase4Function
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this node is a statistics expression
+    var isStatisticsExpression: Bool {
+        switch self {
+        case .functionN(let fn, _):
+            return fn.isStatisticsFunction
+        case .statVariable:
+            return true
+        case .function(let fn, _):
+            return fn.isStatisticsFunction || fn.isRegressionFunction
+        default:
+            return false
+        }
+    }
 }
 
 // MARK: - ASTNode Utility Methods
@@ -319,6 +373,10 @@ extension ASTNode {
             return arg.containsImaginaryUnit
         case .function2(_, let arg1, let arg2):
             return arg1.containsImaginaryUnit || arg2.containsImaginaryUnit
+        case .functionN(_, let args):
+            return args.contains { $0.containsImaginaryUnit }
+        case .listLiteral(let elements):
+            return elements.contains { $0.containsImaginaryUnit }
         default:
             return false
         }
@@ -341,6 +399,14 @@ extension ASTNode {
             return rows.flatMap { $0 }.reduce(into: Set<MatrixRef>()) {
                 $0.formUnion($1.matrixReferences)
             }
+        case .functionN(_, let args):
+            return args.reduce(into: Set<MatrixRef>()) {
+                $0.formUnion($1.matrixReferences)
+            }
+        case .listLiteral(let elements):
+            return elements.reduce(into: Set<MatrixRef>()) {
+                $0.formUnion($1.matrixReferences)
+            }
         default:
             return []
         }
@@ -361,6 +427,14 @@ extension ASTNode {
             return arg1.vectorReferences.union(arg2.vectorReferences)
         case .vectorLiteral(let components):
             return components.reduce(into: Set<VectorRef>()) {
+                $0.formUnion($1.vectorReferences)
+            }
+        case .functionN(_, let args):
+            return args.reduce(into: Set<VectorRef>()) {
+                $0.formUnion($1.vectorReferences)
+            }
+        case .listLiteral(let elements):
+            return elements.reduce(into: Set<VectorRef>()) {
                 $0.formUnion($1.vectorReferences)
             }
         default:

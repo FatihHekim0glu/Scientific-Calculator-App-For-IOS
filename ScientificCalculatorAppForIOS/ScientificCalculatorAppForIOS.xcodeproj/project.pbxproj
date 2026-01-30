@@ -18,6 +18,9 @@
 		A1000002006 /* Matrix.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002006 /* Matrix.swift */; };
 		A1000002007 /* NumberFunctions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002007 /* NumberFunctions.swift */; };
 		A1000002008 /* Vector.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002008 /* Vector.swift */; };
+		A1000002009 /* Statistics.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002009 /* Statistics.swift */; };
+		A1000002010 /* Regression.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002010 /* Regression.swift */; };
+		A1000002011 /* Distributions.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000002011 /* Distributions.swift */; };
 		A1000003001 /* AST.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003001 /* AST.swift */; };
 		A1000003002 /* CalculatorError.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003002 /* CalculatorError.swift */; };
 		A1000003003 /* Evaluator.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003003 /* Evaluator.swift */; };
@@ -26,6 +29,8 @@
 		A1000003006 /* Token.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000003006 /* Token.swift */; };
 		A1000004001 /* CalculatorMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004001 /* CalculatorMode.swift */; };
 		A1000004002 /* MemoryManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004002 /* MemoryManager.swift */; };
+		A1000004003 /* StatisticsMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004003 /* StatisticsMode.swift */; };
+		A1000004004 /* DistributionMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000004004 /* DistributionMode.swift */; };
 		A1000005001 /* AngleConversionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005001 /* AngleConversionsTests.swift */; };
 		A1000005002 /* BaseNArithmeticTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005002 /* BaseNArithmeticTests.swift */; };
 		A1000005003 /* CombinatoricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005003 /* CombinatoricsTests.swift */; };
@@ -34,6 +39,9 @@
 		A1000005006 /* MatrixTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005006 /* MatrixTests.swift */; };
 		A1000005007 /* NumberFunctionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005007 /* NumberFunctionsTests.swift */; };
 		A1000005008 /* VectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005008 /* VectorTests.swift */; };
+		A1000005009 /* StatisticsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005009 /* StatisticsTests.swift */; };
+		A1000005010 /* RegressionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005010 /* RegressionTests.swift */; };
+		A1000005011 /* DistributionsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000005011 /* DistributionsTests.swift */; };
 		A1000006001 /* ASTTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006001 /* ASTTests.swift */; };
 		A1000006002 /* EvaluatorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006002 /* EvaluatorTests.swift */; };
 		A1000006003 /* LexerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A2000006003 /* LexerTests.swift */; };
@@ -65,6 +73,9 @@
 		A2000002006 /* Matrix.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Matrix.swift; sourceTree = "<group>"; };
 		A2000002007 /* NumberFunctions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberFunctions.swift; sourceTree = "<group>"; };
 		A2000002008 /* Vector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Vector.swift; sourceTree = "<group>"; };
+		A2000002009 /* Statistics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Statistics.swift; sourceTree = "<group>"; };
+		A2000002010 /* Regression.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Regression.swift; sourceTree = "<group>"; };
+		A2000002011 /* Distributions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Distributions.swift; sourceTree = "<group>"; };
 		A2000003001 /* AST.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AST.swift; sourceTree = "<group>"; };
 		A2000003002 /* CalculatorError.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorError.swift; sourceTree = "<group>"; };
 		A2000003003 /* Evaluator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Evaluator.swift; sourceTree = "<group>"; };
@@ -73,6 +84,8 @@
 		A2000003006 /* Token.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Token.swift; sourceTree = "<group>"; };
 		A2000004001 /* CalculatorMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalculatorMode.swift; sourceTree = "<group>"; };
 		A2000004002 /* MemoryManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MemoryManager.swift; sourceTree = "<group>"; };
+		A2000004003 /* StatisticsMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsMode.swift; sourceTree = "<group>"; };
+		A2000004004 /* DistributionMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistributionMode.swift; sourceTree = "<group>"; };
 		A2000005001 /* AngleConversionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AngleConversionsTests.swift; sourceTree = "<group>"; };
 		A2000005002 /* BaseNArithmeticTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaseNArithmeticTests.swift; sourceTree = "<group>"; };
 		A2000005003 /* CombinatoricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CombinatoricsTests.swift; sourceTree = "<group>"; };
@@ -81,6 +94,9 @@
 		A2000005006 /* MatrixTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MatrixTests.swift; sourceTree = "<group>"; };
 		A2000005007 /* NumberFunctionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NumberFunctionsTests.swift; sourceTree = "<group>"; };
 		A2000005008 /* VectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VectorTests.swift; sourceTree = "<group>"; };
+		A2000005009 /* StatisticsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatisticsTests.swift; sourceTree = "<group>"; };
+		A2000005010 /* RegressionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegressionTests.swift; sourceTree = "<group>"; };
+		A2000005011 /* DistributionsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DistributionsTests.swift; sourceTree = "<group>"; };
 		A2000006001 /* ASTTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ASTTests.swift; sourceTree = "<group>"; };
 		A2000006002 /* EvaluatorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EvaluatorTests.swift; sourceTree = "<group>"; };
 		A2000006003 /* LexerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LexerTests.swift; sourceTree = "<group>"; };
@@ -126,6 +142,7 @@
 				A2000001002 /* ContentView.swift */,
 				A2000001003 /* Assets.xcassets */,
 				A7000000005 /* Core */,
+				A7000000012 /* Features */,
 			);
 			path = ScientificCalculatorAppForIOS;
 			sourceTree = "<group>";
@@ -170,6 +187,9 @@
 				A2000002006 /* Matrix.swift */,
 				A2000002007 /* NumberFunctions.swift */,
 				A2000002008 /* Vector.swift */,
+				A2000002009 /* Statistics.swift */,
+				A2000002010 /* Regression.swift */,
+				A2000002011 /* Distributions.swift */,
 			);
 			path = Math;
 			sourceTree = "<group>";
@@ -198,6 +218,9 @@
 				A2000005006 /* MatrixTests.swift */,
 				A2000005007 /* NumberFunctionsTests.swift */,
 				A2000005008 /* VectorTests.swift */,
+				A2000005009 /* StatisticsTests.swift */,
+				A2000005010 /* RegressionTests.swift */,
+				A2000005011 /* DistributionsTests.swift */,
 			);
 			path = MathTests;
 			sourceTree = "<group>";
@@ -230,6 +253,31 @@
 				A2000004002 /* MemoryManager.swift */,
 			);
 			path = Engine;
+			sourceTree = "<group>";
+		};
+		A7000000012 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A7000000013 /* Statistics */,
+				A7000000014 /* Distribution */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		A7000000013 /* Statistics */ = {
+			isa = PBXGroup;
+			children = (
+				A2000004003 /* StatisticsMode.swift */,
+			);
+			path = Statistics;
+			sourceTree = "<group>";
+		};
+		A7000000014 /* Distribution */ = {
+			isa = PBXGroup;
+			children = (
+				A2000004004 /* DistributionMode.swift */,
+			);
+			path = Distribution;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -333,6 +381,9 @@
 				A1000002006 /* Matrix.swift in Sources */,
 				A1000002007 /* NumberFunctions.swift in Sources */,
 				A1000002008 /* Vector.swift in Sources */,
+				A1000002009 /* Statistics.swift in Sources */,
+				A1000002010 /* Regression.swift in Sources */,
+				A1000002011 /* Distributions.swift in Sources */,
 				A1000003001 /* AST.swift in Sources */,
 				A1000003002 /* CalculatorError.swift in Sources */,
 				A1000003003 /* Evaluator.swift in Sources */,
@@ -341,6 +392,8 @@
 				A1000003006 /* Token.swift in Sources */,
 				A1000004001 /* CalculatorMode.swift in Sources */,
 				A1000004002 /* MemoryManager.swift in Sources */,
+				A1000004003 /* StatisticsMode.swift in Sources */,
+				A1000004004 /* DistributionMode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -356,6 +409,9 @@
 				A1000005006 /* MatrixTests.swift in Sources */,
 				A1000005007 /* NumberFunctionsTests.swift in Sources */,
 				A1000005008 /* VectorTests.swift in Sources */,
+				A1000005009 /* StatisticsTests.swift in Sources */,
+				A1000005010 /* RegressionTests.swift in Sources */,
+				A1000005011 /* DistributionsTests.swift in Sources */,
 				A1000006001 /* ASTTests.swift in Sources */,
 				A1000006002 /* EvaluatorTests.swift in Sources */,
 				A1000006003 /* LexerTests.swift in Sources */,

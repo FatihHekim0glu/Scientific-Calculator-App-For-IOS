@@ -196,7 +196,7 @@ extension Vector {
             throw CalculatorError.divisionByZero
         }
         
-        return self / mag
+        return try self / mag
     }
     
     /// Angle between two vectors in radians
