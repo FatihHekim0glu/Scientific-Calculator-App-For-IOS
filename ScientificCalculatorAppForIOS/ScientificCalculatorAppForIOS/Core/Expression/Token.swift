@@ -284,6 +284,17 @@ enum MathFunction: String, CaseIterable {
     /// Estimated x value (x̂)
     case estimateX
     
+    // MARK: - Phase 6: Numerical Calculus Functions
+    
+    /// Definite integral ∫[a,b] f(x) dx
+    case integrate
+    /// Numerical derivative d/dx at a point
+    case differentiate
+    /// Summation Σ f(x) for x = start to end
+    case summation
+    /// Product Π f(x) for x = start to end
+    case product
+    
     /// Returns true if this function takes two arguments
     var isTwoArgument: Bool {
         switch self {
@@ -402,6 +413,36 @@ enum MathFunction: String, CaseIterable {
         default: return 1
         }
     }
+    
+    // MARK: - Phase 6: Calculus Function Properties
+    
+    /// Returns true if this is a calculus function requiring special handling
+    var isCalculusFunction: Bool {
+        switch self {
+        case .integrate, .differentiate, .summation, .product:
+            return true
+        default:
+            return false
+        }
+    }
+    
+    /// Number of arguments for calculus functions
+    /// integrate(f(x), x, a, b) = 4 (expression, variable, lower, upper)
+    /// differentiate(f(x), x, a) = 3 (expression, variable, point)
+    /// summation(f(x), x, a, b) = 4 (expression, variable, start, end)
+    /// product(f(x), x, a, b) = 4 (expression, variable, start, end)
+    var calculusArgumentCount: Int {
+        switch self {
+        case .integrate, .summation, .product: return 4
+        case .differentiate: return 3
+        default: return 1
+        }
+    }
+    
+    /// Returns true if this is a Phase 6 function
+    var isPhase6Function: Bool {
+        isCalculusFunction
+    }
 }
 
 // MARK: - Phase 4: Statistical Functions Enum
@@ -427,6 +468,34 @@ enum StatFunction: String, CaseIterable {
         case .count, .sum: return 1
         case .mean, .min, .max, .median, .range: return 1
         case .stdDev, .variance: return 2
+        }
+    }
+}
+
+// MARK: - Phase 6: Calculus Operators
+
+/// Calculus operators with special syntax
+enum CalcOperator: String, CaseIterable {
+    case integral = "∫"
+    case derivative = "d/dx"
+    case sigma = "Σ"
+    case pi = "Π"
+    
+    var displaySymbol: String {
+        switch self {
+        case .integral: return "∫"
+        case .derivative: return "d/dx"
+        case .sigma: return "Σ"
+        case .pi: return "Π"
+        }
+    }
+    
+    var description: String {
+        switch self {
+        case .integral: return "Definite integral"
+        case .derivative: return "Derivative at point"
+        case .sigma: return "Summation"
+        case .pi: return "Product"
         }
     }
 }
@@ -478,6 +547,11 @@ enum TokenType: Equatable {
     
     /// Statistical function (variadic, takes list of values)
     case statFunction(StatFunction)
+    
+    // Phase 6 additions
+    
+    /// Calculus operator (∫, d/dx, Σ, Π)
+    case calculusOperator(CalcOperator)
 }
 
 // MARK: - Token
@@ -519,6 +593,30 @@ extension TokenType {
         }
     }
     
+    /// Returns true if this token type is a Phase 6 type
+    var isPhase6Type: Bool {
+        switch self {
+        case .calculusOperator:
+            return true
+        case .function(let fn):
+            return fn.isPhase6Function
+        default:
+            return false
+        }
+    }
+    
+    /// Returns true if this is a calculus-related token
+    var isCalculusToken: Bool {
+        switch self {
+        case .calculusOperator:
+            return true
+        case .function(let fn):
+            return fn.isCalculusFunction
+        default:
+            return false
+        }
+    }
+    
     /// Returns true if this is a statistics-related token
     var isStatisticsToken: Bool {
         switch self {
@@ -546,7 +644,7 @@ extension TokenType {
         switch self {
         case .number, .constant, .scientificConstant, .variable, .leftParen, .function,
              .imaginaryUnit, .matrixRef, .vectorRef, .leftBracket,
-             .statVariable, .statFunction:
+             .statVariable, .statFunction, .calculusOperator:
             return true
         case .unaryOperator(let op):
             return op == .negate
@@ -598,6 +696,8 @@ extension TokenType {
             return sv.rawValue
         case .statFunction(let sf):
             return sf.rawValue
+        case .calculusOperator(let op):
+            return op.displaySymbol
         }
     }
 }

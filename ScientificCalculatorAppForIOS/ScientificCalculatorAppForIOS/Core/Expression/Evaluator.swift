@@ -1478,6 +1478,11 @@ struct Evaluator {
     
     /// Evaluates functions with variable number of arguments
     private mutating func evaluateFunctionN(_ function: MathFunction, arguments: [ASTNode]) throws -> CalculatorResult {
+        // Check if it's a calculus function (Phase 6)
+        if function.isCalculusFunction {
+            return try evaluateCalculusFunctionN(function, arguments: arguments)
+        }
+        
         // Check if it's a distribution function
         if function.isDistributionFunction {
             let args = try arguments.map { node -> Double in
@@ -1503,6 +1508,121 @@ struct Evaluator {
         }
         
         throw CalculatorError.syntaxError("\(function.rawValue) is not supported as a multi-argument function")
+    }
+    
+    // MARK: - Phase 6: Calculus Function Evaluation
+    
+    /// Evaluates calculus functions from functionN syntax
+    /// Syntax: integrate(expression, variable, lower, upper)
+    ///         differentiate(expression, variable, point)
+    ///         summation(expression, variable, start, end)
+    ///         product(expression, variable, start, end)
+    private mutating func evaluateCalculusFunctionN(_ function: MathFunction, arguments: [ASTNode]) throws -> CalculatorResult {
+        guard arguments.count >= 3 else {
+            throw CalculatorError.invalidInput("\(function.rawValue) requires at least 3 arguments")
+        }
+        
+        // First argument is the expression (NOT evaluated - passed as AST)
+        let expression = arguments[0]
+        
+        // Second argument is the variable name
+        let variableName: String
+        if case .variable(let name) = arguments[1] {
+            variableName = name
+        } else {
+            throw CalculatorError.invalidInput("Second argument must be a variable name")
+        }
+        
+        // Remaining arguments are numeric bounds
+        var numericArgs: [Double] = []
+        for i in 2..<arguments.count {
+            let result = try evaluate(arguments[i])
+            guard let value = result.doubleValue else {
+                throw CalculatorError.mathError("Bounds must be numeric values")
+            }
+            numericArgs.append(value)
+        }
+        
+        return try evaluateCalculusFunction(function, expression: expression, variable: variableName, args: numericArgs)
+    }
+    
+    /// Evaluates calculus functions (integrate, differentiate, summation, product)
+    private mutating func evaluateCalculusFunction(
+        _ function: MathFunction,
+        expression: ASTNode,
+        variable: String,
+        args: [Double]
+    ) throws -> CalculatorResult {
+        switch function {
+        case .integrate:
+            guard args.count >= 2 else {
+                throw CalculatorError.invalidInput("integrate requires lower and upper bounds")
+            }
+            let a = args[0]
+            let b = args[1]
+            
+            let result = try NumericalCalculus.integrateExpression(
+                expression,
+                variable: variable,
+                from: a,
+                to: b,
+                context: context
+            )
+            
+            return .real(result.value)
+            
+        case .differentiate:
+            guard args.count >= 1 else {
+                throw CalculatorError.invalidInput("differentiate requires a point")
+            }
+            let point = args[0]
+            
+            let result = try NumericalCalculus.differentiateExpression(
+                expression,
+                variable: variable,
+                at: point,
+                context: context
+            )
+            
+            return .real(result.value)
+            
+        case .summation:
+            guard args.count >= 2 else {
+                throw CalculatorError.invalidInput("summation requires start and end")
+            }
+            let start = Int(args[0])
+            let end = Int(args[1])
+            
+            let result = try NumericalCalculus.summationExpression(
+                expression,
+                variable: variable,
+                from: start,
+                to: end,
+                context: context
+            )
+            
+            return .real(result)
+            
+        case .product:
+            guard args.count >= 2 else {
+                throw CalculatorError.invalidInput("product requires start and end")
+            }
+            let start = Int(args[0])
+            let end = Int(args[1])
+            
+            let result = try NumericalCalculus.productExpression(
+                expression,
+                variable: variable,
+                from: start,
+                to: end,
+                context: context
+            )
+            
+            return .real(result)
+            
+        default:
+            throw CalculatorError.syntaxError("\(function.rawValue) is not a calculus function")
+        }
     }
 }
 
@@ -1560,5 +1680,81 @@ extension Evaluator {
     /// Evaluates a distribution function with provided arguments
     mutating func evaluateDistribution(_ function: MathFunction, args: [Double]) throws -> CalculatorResult {
         return try evaluateDistributionFunction(function, args: args)
+    }
+    
+    // MARK: - Phase 6: Calculus Convenience Methods
+    
+    /// Evaluates a definite integral ∫[a,b] f(x) dx
+    mutating func evaluateIntegral(
+        expression: ASTNode,
+        variable: String,
+        from a: Double,
+        to b: Double
+    ) throws -> Double {
+        let result = try NumericalCalculus.integrateExpression(
+            expression,
+            variable: variable,
+            from: a,
+            to: b,
+            context: context
+        )
+        return result.value
+    }
+    
+    /// Evaluates derivative f'(point)
+    mutating func evaluateDerivative(
+        expression: ASTNode,
+        variable: String,
+        at point: Double
+    ) throws -> Double {
+        let result = try NumericalCalculus.differentiateExpression(
+            expression,
+            variable: variable,
+            at: point,
+            context: context
+        )
+        return result.value
+    }
+    
+    /// Evaluates summation Σ f(x) for x = start to end
+    mutating func evaluateSummation(
+        expression: ASTNode,
+        variable: String,
+        from start: Int,
+        to end: Int
+    ) throws -> Double {
+        return try NumericalCalculus.summationExpression(
+            expression,
+            variable: variable,
+            from: start,
+            to: end,
+            context: context
+        )
+    }
+    
+    /// Evaluates product Π f(x) for x = start to end
+    mutating func evaluateProduct(
+        expression: ASTNode,
+        variable: String,
+        from start: Int,
+        to end: Int
+    ) throws -> Double {
+        return try NumericalCalculus.productExpression(
+            expression,
+            variable: variable,
+            from: start,
+            to: end,
+            context: context
+        )
+    }
+    
+    /// Evaluates a calculus function with the given arguments
+    mutating func evaluateCalculus(
+        _ function: MathFunction,
+        expression: ASTNode,
+        variable: String,
+        bounds: [Double]
+    ) throws -> CalculatorResult {
+        return try evaluateCalculusFunction(function, expression: expression, variable: variable, args: bounds)
     }
 }
