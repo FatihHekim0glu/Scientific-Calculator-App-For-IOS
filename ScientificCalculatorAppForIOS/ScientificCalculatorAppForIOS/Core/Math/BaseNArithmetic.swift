@@ -261,21 +261,21 @@ extension BaseNNumber {
     
     /// Left shift
     static func << (lhs: BaseNNumber, rhs: Int) -> BaseNNumber {
-        let shiftAmount = min(max(rhs, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(rhs, 0), 31)
         let result = lhs.value << shiftAmount
         return BaseNNumber(result, base: lhs.base)
     }
     
     /// Right shift (arithmetic, preserves sign)
     static func >> (lhs: BaseNNumber, rhs: Int) -> BaseNNumber {
-        let shiftAmount = min(max(rhs, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(rhs, 0), 31)
         let result = lhs.value >> shiftAmount
         return BaseNNumber(result, base: lhs.base)
     }
     
     /// Logical right shift (zeros fill from left)
     func logicalRightShift(_ count: Int) -> BaseNNumber {
-        let shiftAmount = min(max(count, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(count, 0), 31)
         let unsigned = UInt32(bitPattern: value)
         let result = unsigned >> shiftAmount
         return BaseNNumber(Int32(bitPattern: result), base: base)
@@ -501,19 +501,19 @@ struct BaseNArithmetic {
     
     /// Left shift
     static func leftShift(_ a: Int32, by count: Int) -> Int32 {
-        let shiftAmount = min(max(count, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(count, 0), 31)
         return a << shiftAmount
     }
     
     /// Arithmetic right shift (preserves sign)
     static func rightShift(_ a: Int32, by count: Int) -> Int32 {
-        let shiftAmount = min(max(count, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(count, 0), 31)
         return a >> shiftAmount
     }
     
     /// Logical right shift (zeros fill)
     static func logicalRightShift(_ a: Int32, by count: Int) -> Int32 {
-        let shiftAmount = min(max(count, 0), 31)
+        let shiftAmount = Swift.min(Swift.max(count, 0), 31)
         let unsigned = UInt32(bitPattern: a)
         return Int32(bitPattern: unsigned >> shiftAmount)
     }
@@ -590,17 +590,17 @@ struct BaseNArithmetic {
 
 extension BaseNNumber {
     /// Zero value
-    static let zero = BaseNNumber(0)
+    static let zero = BaseNNumber(Int32(0))
     
     /// One value
-    static let one = BaseNNumber(1)
+    static let one = BaseNNumber(Int32(1))
     
     /// All bits set (0xFFFFFFFF / -1)
-    static let allOnes = BaseNNumber(-1)
+    static let allOnes = BaseNNumber(Int32(-1))
     
     /// Maximum positive value
-    static let max = BaseNNumber(Int32.max)
+    static let maximum = BaseNNumber(Int32.max)
     
     /// Minimum value (most negative)
-    static let min = BaseNNumber(Int32.min)
+    static let minimum = BaseNNumber(Int32.min)
 }

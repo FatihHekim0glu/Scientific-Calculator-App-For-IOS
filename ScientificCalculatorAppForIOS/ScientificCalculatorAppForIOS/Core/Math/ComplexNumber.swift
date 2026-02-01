@@ -59,8 +59,8 @@ struct ComplexNumber: Equatable, Hashable {
     
     /// Creates a complex number from polar form (r∠θ)
     static func fromPolar(r: Double, theta: Double) -> ComplexNumber {
-        let real = r * cos(theta)
-        let imaginary = r * sin(theta)
+        let real = r * Foundation.cos(theta)
+        let imaginary = r * Foundation.sin(theta)
         return ComplexNumber(real: real, imaginary: imaginary)
     }
     
@@ -238,8 +238,8 @@ extension ComplexNumber {
     func exp() -> ComplexNumber {
         let expReal = Foundation.exp(real)
         return ComplexNumber(
-            real: expReal * cos(imaginary),
-            imaginary: expReal * sin(imaginary)
+            real: expReal * Foundation.cos(imaginary),
+            imaginary: expReal * Foundation.sin(imaginary)
         )
     }
     
@@ -258,16 +258,16 @@ extension ComplexNumber {
     /// Complex sine: sin(z) = sin(a)cosh(b) + i·cos(a)sinh(b)
     func sin() -> ComplexNumber {
         ComplexNumber(
-            real: Foundation.sin(real) * cosh(imaginary),
-            imaginary: Foundation.cos(real) * sinh(imaginary)
+            real: Foundation.sin(real) * Foundation.cosh(imaginary),
+            imaginary: Foundation.cos(real) * Foundation.sinh(imaginary)
         )
     }
     
     /// Complex cosine: cos(z) = cos(a)cosh(b) - i·sin(a)sinh(b)
     func cos() -> ComplexNumber {
         ComplexNumber(
-            real: Foundation.cos(real) * cosh(imaginary),
-            imaginary: -Foundation.sin(real) * sinh(imaginary)
+            real: Foundation.cos(real) * Foundation.cosh(imaginary),
+            imaginary: -Foundation.sin(real) * Foundation.sinh(imaginary)
         )
     }
     
@@ -284,7 +284,7 @@ extension ComplexNumber {
     }
     
     /// Complex hyperbolic sine: sinh(z) = sinh(a)cos(b) + i·cosh(a)sin(b)
-    func sinh() -> ComplexNumber {
+    func complexSinh() -> ComplexNumber {
         ComplexNumber(
             real: Foundation.sinh(real) * Foundation.cos(imaginary),
             imaginary: Foundation.cosh(real) * Foundation.sin(imaginary)
@@ -292,7 +292,7 @@ extension ComplexNumber {
     }
     
     /// Complex hyperbolic cosine: cosh(z) = cosh(a)cos(b) + i·sinh(a)sin(b)
-    func cosh() -> ComplexNumber {
+    func complexCosh() -> ComplexNumber {
         ComplexNumber(
             real: Foundation.cosh(real) * Foundation.cos(imaginary),
             imaginary: Foundation.sinh(real) * Foundation.sin(imaginary)
@@ -301,8 +301,8 @@ extension ComplexNumber {
     
     /// Complex hyperbolic tangent: tanh(z) = sinh(z) / cosh(z)
     func tanh() throws -> ComplexNumber {
-        let sinhZ = self.sinh()
-        let coshZ = self.cosh()
+        let sinhZ = self.complexSinh()
+        let coshZ = self.complexCosh()
         
         guard !coshZ.isZero else {
             throw CalculatorError.domainError("Hyperbolic tangent undefined")
@@ -479,7 +479,7 @@ extension ComplexNumber {
     
     /// Parses rectangular form "a+bi" or "a-bi"
     private static func parseRectangular(_ string: String) -> ComplexNumber? {
-        var str = string
+        let str = string
         var realPart: Double = 0
         var imagPart: Double = 0
         

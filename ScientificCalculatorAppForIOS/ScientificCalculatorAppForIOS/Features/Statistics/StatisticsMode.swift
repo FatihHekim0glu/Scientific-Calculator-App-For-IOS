@@ -139,11 +139,17 @@ class StatisticsMode {
         }
     }
     
+    /// Currently selected regression type (backing storage)
+    @ObservationIgnored
+    private var _selectedRegressionType: RegressionType = .linear
+    
     /// Currently selected regression type
-    var selectedRegressionType: RegressionType = .linear {
-        didSet {
-            if selectedRegressionType != oldValue {
-                cachedRegression = nil
+    var selectedRegressionType: RegressionType {
+        get { _selectedRegressionType }
+        set {
+            if newValue != _selectedRegressionType {
+                _selectedRegressionType = newValue
+                cachedRegression = [:]
             }
         }
     }
@@ -151,15 +157,19 @@ class StatisticsMode {
     // MARK: - Computed Results (cached)
     
     /// 1-variable statistics (computed on demand)
+    @ObservationIgnored
     private var cachedOneVarStats: OneVariableStatistics?
     
     /// 2-variable statistics (computed on demand)
+    @ObservationIgnored
     private var cachedTwoVarStats: TwoVariableStatistics?
     
     /// Regression result (computed on demand)
+    @ObservationIgnored
     private var cachedRegression: [RegressionType: RegressionResult] = [:]
     
     /// Whether cached results are valid
+    @ObservationIgnored
     private var cacheValid: Bool = false
     
     // MARK: - Initialization

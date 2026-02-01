@@ -405,14 +405,14 @@ final class ComplexNumberTests: XCTestCase {
     }
     
     func test_Sinh_Zero_ReturnsZero() {
-        let result = ComplexNumber.zero.sinh()
+        let result = ComplexNumber.zero.complexSinh()
         
         XCTAssertEqual(result.real, 0.0, accuracy: 1e-10)
         XCTAssertEqual(result.imaginary, 0.0, accuracy: 1e-10)
     }
     
     func test_Cosh_Zero_ReturnsOne() {
-        let result = ComplexNumber.zero.cosh()
+        let result = ComplexNumber.zero.complexCosh()
         
         XCTAssertEqual(result.real, 1.0, accuracy: 1e-10)
         XCTAssertEqual(result.imaginary, 0.0, accuracy: 1e-10)

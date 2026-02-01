@@ -122,7 +122,7 @@ struct Parser {
     
     /// Resolves binary operators based on operand types for context-aware parsing.
     private func resolveBinaryOperator(_ op: BinaryOperator, left: ASTNode, right: ASTNode) -> ASTNode {
-        var resolvedOp = op
+        let resolvedOp = op
         
         // Context-aware operator resolution
         if op == .multiply {
@@ -190,6 +190,21 @@ struct Parser {
         case .baseIndicator(let base):
             advance()
             return try parseBaseNExpression(base)
+            
+        // Phase 4: Statistical variables
+        case .statVariable(let statVar):
+            advance()
+            return .statVariable(statVar)
+            
+        // Phase 4: Statistical functions
+        case .statFunction(let statFunc):
+            advance()
+            return try parseStatFunctionCall(statFunc)
+            
+        // Phase 6: Calculus operators
+        case .calculusOperator(let calcOp):
+            advance()
+            return try parseCalculusExpression(calcOp)
             
         case .binaryOperator, .rightParen, .rightBracket, .comma, .semicolon:
             throw CalculatorError.syntaxError("Unexpected token: \(token.type)")
@@ -543,6 +558,83 @@ struct Parser {
         default:
             return false
         }
+    }
+    
+    // MARK: - Phase 4: Statistical Function Parsing
+    
+    /// Parses a statistical function call with its arguments.
+    private mutating func parseStatFunctionCall(_ statFunc: StatFunction) throws -> ASTNode {
+        // Convert StatFunction to corresponding MathFunction
+        let mathFunc: MathFunction
+        switch statFunc {
+        case .mean: mathFunc = .mean
+        case .sum: mathFunc = .sum
+        case .stdDev: mathFunc = .sampleStdDev
+        case .variance: mathFunc = .variance
+        case .min: mathFunc = .minimum
+        case .max: mathFunc = .maximum
+        case .median: mathFunc = .median
+        case .count: mathFunc = .count
+        case .range: mathFunc = .sampleStdDev  // range uses similar calculation
+        }
+        
+        // Parse arguments in parentheses
+        guard consumeIfMatch(.leftParen) else {
+            throw CalculatorError.syntaxError("Expected '(' after \(statFunc.rawValue)")
+        }
+        
+        var arguments: [ASTNode] = []
+        
+        if !match(.rightParen) {
+            repeat {
+                let arg = try parseExpression(minPrecedence: 0)
+                arguments.append(arg)
+            } while consumeIfMatch(.comma)
+        }
+        
+        guard consumeIfMatch(.rightParen) else {
+            throw CalculatorError.syntaxError("Expected ')' after function arguments")
+        }
+        
+        guard arguments.count >= statFunc.minArguments else {
+            throw CalculatorError.invalidInput("\(statFunc.rawValue) requires at least \(statFunc.minArguments) arguments")
+        }
+        
+        return .functionN(mathFunc, arguments)
+    }
+    
+    // MARK: - Phase 6: Calculus Expression Parsing
+    
+    /// Parses a calculus operator expression.
+    private mutating func parseCalculusExpression(_ calcOp: CalcOperator) throws -> ASTNode {
+        // Convert CalcOperator to corresponding MathFunction
+        let mathFunc: MathFunction
+        switch calcOp {
+        case .integral: mathFunc = .integrate
+        case .derivative: mathFunc = .differentiate
+        case .sigma: mathFunc = .summation
+        case .pi: mathFunc = .product
+        }
+        
+        // Parse arguments in parentheses
+        guard consumeIfMatch(.leftParen) else {
+            throw CalculatorError.syntaxError("Expected '(' after \(calcOp.displaySymbol)")
+        }
+        
+        var arguments: [ASTNode] = []
+        
+        if !match(.rightParen) {
+            repeat {
+                let arg = try parseExpression(minPrecedence: 0)
+                arguments.append(arg)
+            } while consumeIfMatch(.comma)
+        }
+        
+        guard consumeIfMatch(.rightParen) else {
+            throw CalculatorError.syntaxError("Expected ')' after calculus operator arguments")
+        }
+        
+        return .functionN(mathFunc, arguments)
     }
 }
 

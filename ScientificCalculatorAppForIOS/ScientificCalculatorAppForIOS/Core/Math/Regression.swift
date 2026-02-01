@@ -211,7 +211,7 @@ struct Regression {
         let sumY = yValues.reduce(0, +)
         let sumXY = zip(xValues, yValues).map(*).reduce(0, +)
         let sumX2Y = zip(xValues, yValues).map { $0 * $0 * $1 }.reduce(0, +)
-        let sumY2 = yValues.map { $0 * $0 }.reduce(0, +)
+        _ = yValues.map { $0 * $0 }.reduce(0, +)  // sumY2 reserved for future r² calculation
         
         // Solve system: [n, Σx, Σx²] [a]   [Σy]
         //               [Σx, Σx², Σx³] [b] = [Σxy]

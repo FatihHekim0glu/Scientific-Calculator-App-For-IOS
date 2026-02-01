@@ -34,6 +34,9 @@ enum CalculatorError: Error, Equatable, LocalizedError {
     /// Matrix or vector dimensions incompatible
     case dimensionMismatch(String)
     
+    /// Value out of valid range
+    case rangeError(String)
+    
     /// Equation has no solution
     case noSolution
     
@@ -64,6 +67,8 @@ enum CalculatorError: Error, Equatable, LocalizedError {
             return "Timeout Error: Calculation took too long"
         case .dimensionMismatch(let message):
             return "Dimension Error: \(message)"
+        case .rangeError(let message):
+            return "Range Error: \(message)"
         case .noSolution:
             return "No Solution"
         case .infiniteSolutions:

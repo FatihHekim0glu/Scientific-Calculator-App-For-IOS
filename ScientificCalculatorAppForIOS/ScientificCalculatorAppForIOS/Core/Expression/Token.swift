@@ -661,7 +661,7 @@ extension TokenType {
         case .constant(let c):
             return c.rawValue
         case .scientificConstant(let c):
-            return c.symbol
+            return c.rawValue
         case .binaryOperator(let op):
             return op.rawValue
         case .unaryOperator(let op):

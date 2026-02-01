@@ -607,12 +607,12 @@ final class BaseNArithmeticTests: XCTestCase {
         XCTAssertEqual(BaseNNumber.allOnes.value, -1)
     }
     
-    func test_CommonValue_Max() {
-        XCTAssertEqual(BaseNNumber.max.value, Int32.max)
+    func test_CommonValue_Maximum() {
+        XCTAssertEqual(BaseNNumber.maximum.value, Int32.max)
     }
     
-    func test_CommonValue_Min() {
-        XCTAssertEqual(BaseNNumber.min.value, Int32.min)
+    func test_CommonValue_Minimum() {
+        XCTAssertEqual(BaseNNumber.minimum.value, Int32.min)
     }
     
     // MARK: - Comparison Tests

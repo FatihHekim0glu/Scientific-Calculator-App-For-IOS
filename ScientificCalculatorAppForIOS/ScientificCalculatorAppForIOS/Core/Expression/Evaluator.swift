@@ -449,7 +449,7 @@ struct Evaluator {
         case .functionN(let function, let arguments):
             return try evaluateFunctionN(function, arguments: arguments)
             
-        case .listLiteral(let elements):
+        case .listLiteral:
             // Lists are handled by functions that accept them
             throw CalculatorError.syntaxError("List literals must be used as function arguments")
             
@@ -1097,6 +1097,25 @@ struct Evaluator {
         case .complexSqrt, .complexExp, .complexLn, .complexSin, .complexCos, .complexTan,
              .identity, .trace:
             throw CalculatorError.syntaxError("\(function.rawValue) requires special handling")
+            
+        // Statistics functions require multiple arguments
+        case .mean, .sum, .sumSquares, .popStdDev, .sampleStdDev, .variance,
+             .minimum, .maximum, .median, .quartile1, .quartile3, .count,
+             .covariance, .correlation:
+            throw CalculatorError.syntaxError("\(function.rawValue) requires a list of values")
+            
+        // Distribution functions require multiple arguments
+        case .normalPdf, .normalCdf, .invNorm, .binomialPdf, .binomialCdf,
+             .poissonPdf, .poissonCdf:
+            throw CalculatorError.syntaxError("\(function.rawValue) requires multiple arguments")
+            
+        // Regression functions require data context
+        case .linRegA, .linRegB, .estimateY, .estimateX:
+            throw CalculatorError.syntaxError("\(function.rawValue) requires regression data")
+            
+        // Calculus functions require special parsing
+        case .integrate, .differentiate, .summation, .product:
+            throw CalculatorError.syntaxError("\(function.rawValue) requires expression and bounds")
         }
     }
     
@@ -1141,10 +1160,10 @@ struct Evaluator {
             return .complex(try argument.tan())
             
         case .sinh:
-            return .complex(argument.sinh())
+            return .complex(argument.complexSinh())
             
         case .cosh:
-            return .complex(argument.cosh())
+            return .complex(argument.complexCosh())
             
         case .tanh:
             return .complex(try argument.tanh())
@@ -1561,15 +1580,8 @@ struct Evaluator {
             let a = args[0]
             let b = args[1]
             
-            let result = try NumericalCalculus.integrateExpression(
-                expression,
-                variable: variable,
-                from: a,
-                to: b,
-                context: context
-            )
-            
-            return .real(result.value)
+            let result = try integrateExpression(expression, variable: variable, from: a, to: b)
+            return .real(result)
             
         case .differentiate:
             guard args.count >= 1 else {
@@ -1577,14 +1589,8 @@ struct Evaluator {
             }
             let point = args[0]
             
-            let result = try NumericalCalculus.differentiateExpression(
-                expression,
-                variable: variable,
-                at: point,
-                context: context
-            )
-            
-            return .real(result.value)
+            let result = try differentiateExpression(expression, variable: variable, at: point)
+            return .real(result)
             
         case .summation:
             guard args.count >= 2 else {
@@ -1593,14 +1599,7 @@ struct Evaluator {
             let start = Int(args[0])
             let end = Int(args[1])
             
-            let result = try NumericalCalculus.summationExpression(
-                expression,
-                variable: variable,
-                from: start,
-                to: end,
-                context: context
-            )
-            
+            let result = try summationExpression(expression, variable: variable, from: start, to: end)
             return .real(result)
             
         case .product:
@@ -1610,19 +1609,112 @@ struct Evaluator {
             let start = Int(args[0])
             let end = Int(args[1])
             
-            let result = try NumericalCalculus.productExpression(
-                expression,
-                variable: variable,
-                from: start,
-                to: end,
-                context: context
-            )
-            
+            let result = try productExpression(expression, variable: variable, from: start, to: end)
             return .real(result)
             
         default:
             throw CalculatorError.syntaxError("\(function.rawValue) is not a calculus function")
         }
+    }
+    
+    // MARK: - Inline Calculus Implementations
+    
+    /// Integrates an expression using Simpson's rule
+    private func integrateExpression(_ expression: ASTNode, variable: String, from a: Double, to b: Double) throws -> Double {
+        let n = 1000
+        let h = (b - a) / Double(n)
+        var sum = 0.0
+        
+        for i in 0...n {
+            let x = a + Double(i) * h
+            var ctx = context
+            ctx.variables[variable] = x
+            var eval = Evaluator(context: ctx)
+            let result = try eval.evaluate(expression)
+            guard let value = result.doubleValue else {
+                throw CalculatorError.mathError("Cannot integrate non-numeric expression")
+            }
+            
+            let weight: Double
+            if i == 0 || i == n {
+                weight = 1
+            } else if i % 2 == 1 {
+                weight = 4
+            } else {
+                weight = 2
+            }
+            sum += weight * value
+        }
+        
+        return sum * h / 3
+    }
+    
+    /// Differentiates an expression using central difference
+    private func differentiateExpression(_ expression: ASTNode, variable: String, at point: Double) throws -> Double {
+        let h = 1e-8
+        
+        var ctxPlus = context
+        ctxPlus.variables[variable] = point + h
+        var evalPlus = Evaluator(context: ctxPlus)
+        let resultPlus = try evalPlus.evaluate(expression)
+        
+        var ctxMinus = context
+        ctxMinus.variables[variable] = point - h
+        var evalMinus = Evaluator(context: ctxMinus)
+        let resultMinus = try evalMinus.evaluate(expression)
+        
+        guard let fp = resultPlus.doubleValue, let fm = resultMinus.doubleValue else {
+            throw CalculatorError.mathError("Cannot differentiate non-numeric expression")
+        }
+        
+        return (fp - fm) / (2 * h)
+    }
+    
+    /// Computes summation
+    private func summationExpression(_ expression: ASTNode, variable: String, from start: Int, to end: Int) throws -> Double {
+        guard start <= end else {
+            throw CalculatorError.invalidInput("Start must be ≤ end for summation")
+        }
+        guard end - start < 10_000_000 else {
+            throw CalculatorError.domainError("Summation range too large")
+        }
+        
+        var sum = 0.0
+        for i in start...end {
+            var ctx = context
+            ctx.variables[variable] = Double(i)
+            var eval = Evaluator(context: ctx)
+            let result = try eval.evaluate(expression)
+            guard let value = result.doubleValue else {
+                throw CalculatorError.mathError("Cannot sum non-numeric expression")
+            }
+            sum += value
+        }
+        return sum
+    }
+    
+    /// Computes product
+    private func productExpression(_ expression: ASTNode, variable: String, from start: Int, to end: Int) throws -> Double {
+        guard start <= end else {
+            throw CalculatorError.invalidInput("Start must be ≤ end for product")
+        }
+        guard end - start < 10_000_000 else {
+            throw CalculatorError.domainError("Product range too large")
+        }
+        
+        var result = 1.0
+        for i in start...end {
+            var ctx = context
+            ctx.variables[variable] = Double(i)
+            var eval = Evaluator(context: ctx)
+            let evalResult = try eval.evaluate(expression)
+            guard let value = evalResult.doubleValue else {
+                throw CalculatorError.mathError("Cannot multiply non-numeric expression")
+            }
+            result *= value
+            if result == 0 { break }
+        }
+        return result
     }
 }
 
@@ -1632,7 +1724,7 @@ extension Evaluator {
     
     /// Evaluates an expression string and returns a CalculatorResult
     mutating func evaluateExpression(_ expression: String) throws -> CalculatorResult {
-        let lexer = Lexer(expression)
+        var lexer = Lexer(input: expression)
         let tokens = try lexer.tokenize()
         var parser = Parser(tokens: tokens)
         let ast = try parser.parse()
@@ -1691,14 +1783,7 @@ extension Evaluator {
         from a: Double,
         to b: Double
     ) throws -> Double {
-        let result = try NumericalCalculus.integrateExpression(
-            expression,
-            variable: variable,
-            from: a,
-            to: b,
-            context: context
-        )
-        return result.value
+        return try integrateExpression(expression, variable: variable, from: a, to: b)
     }
     
     /// Evaluates derivative f'(point)
@@ -1707,13 +1792,7 @@ extension Evaluator {
         variable: String,
         at point: Double
     ) throws -> Double {
-        let result = try NumericalCalculus.differentiateExpression(
-            expression,
-            variable: variable,
-            at: point,
-            context: context
-        )
-        return result.value
+        return try differentiateExpression(expression, variable: variable, at: point)
     }
     
     /// Evaluates summation Σ f(x) for x = start to end
@@ -1723,13 +1802,7 @@ extension Evaluator {
         from start: Int,
         to end: Int
     ) throws -> Double {
-        return try NumericalCalculus.summationExpression(
-            expression,
-            variable: variable,
-            from: start,
-            to: end,
-            context: context
-        )
+        return try summationExpression(expression, variable: variable, from: start, to: end)
     }
     
     /// Evaluates product Π f(x) for x = start to end
@@ -1739,13 +1812,7 @@ extension Evaluator {
         from start: Int,
         to end: Int
     ) throws -> Double {
-        return try NumericalCalculus.productExpression(
-            expression,
-            variable: variable,
-            from: start,
-            to: end,
-            context: context
-        )
+        return try productExpression(expression, variable: variable, from: start, to: end)
     }
     
     /// Evaluates a calculus function with the given arguments
