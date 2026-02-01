@@ -16,6 +16,10 @@ private enum MemoryKeys {
 @Observable
 class MemoryManager {
     
+    // MARK: - Singleton
+    
+    static let shared = MemoryManager()
+    
     // MARK: - Memory Storage
     
     /// Independent memory (M)
@@ -49,7 +53,7 @@ class MemoryManager {
     
     // MARK: - Initialization
     
-    init() {
+    private init() {
         loadState()
     }
     
